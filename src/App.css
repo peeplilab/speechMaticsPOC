@@ -1,0 +1,14 @@
+#root {
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 0;
+  background-color: #f3f4f6;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
