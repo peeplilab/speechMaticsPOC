@@ -3,7 +3,7 @@ import process from 'node:process'
 import { createSpeechmaticsJWT } from '@speechmatics/auth'
 import { RealtimeClient } from '@speechmatics/real-time-client'
 
-const apiKey = process.env.SPEECHMATICS_API_KEY || '60mW0Y5tp8ACwZWvE3O1ds8qc3F6YIlo'
+const apiKey = process.env.SPEECHMATICS_API_KEY
 
 if (!apiKey) {
   console.error('Missing SPEECHMATICS_API_KEY environment variable.')
