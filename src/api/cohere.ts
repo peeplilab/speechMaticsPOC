@@ -42,7 +42,7 @@ const stripCodeFence = (text: string): string => {
   return fenced
 }
 
-const cohereKeyFromEnv = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_COHERE_API_KEY
+const cohereKeyFromEnv = (import.meta as { env?: Record<string, string | undefined> }).env?.COHERE_API_KEY
 const COHERE_API_KEY = cohereKeyFromEnv ?? ''
 const cohereClient = new CohereClient({ token: COHERE_API_KEY })
 
@@ -64,7 +64,7 @@ export const extractClinicalData = async (transcript: string): Promise<ClinicalD
   }
 
   if (!COHERE_API_KEY) {
-    throw new Error('Missing Cohere API key (set VITE_COHERE_API_KEY)')
+    throw new Error('Missing Cohere API key (set COHERE_API_KEY)')
   }
 
   const trimmedTranscript = transcript.trim()
