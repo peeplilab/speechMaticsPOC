@@ -13,6 +13,7 @@
   "dependencies": {
     "@speechmatics/auth": "^0.1.0",
     "@speechmatics/real-time-client": "^8.2.0",
+    "cohere-ai": "^7.20.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

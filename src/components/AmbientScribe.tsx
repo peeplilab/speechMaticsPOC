@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { extractClinicalData, type ClinicalData } from '../api/cohere'
 
 type SpeechRecognitionAlternativeLike = {
   transcript: string
@@ -194,7 +195,9 @@ const useSpeechRecognition = () => {
 const AmbientScribe: React.FC = () => {
   const { startListening, stopListening, isListening, error, interimTranscript, finalTranscript } =
     useSpeechRecognition()
-  const [draftNote, setDraftNote] = useState('')
+  const [clinicalData, setClinicalData] = useState<ClinicalData | null>(null)
+  const [isExtracting, setIsExtracting] = useState(false)
+  const [cohereError, setCohereError] = useState<string | null>(null)
 
   const statusLabel = useMemo(() => {
     if (error) {
@@ -210,31 +213,50 @@ const AmbientScribe: React.FC = () => {
 
   const startDisabled = isListening || recognitionUnavailable
   const stopDisabled = !isListening
-  const draftDisabled = !finalTranscript
+  const draftDisabled = !finalTranscript || isExtracting
 
-  const handleGenerateDraft = useCallback(() => {
-    setDraftNote(finalTranscript)
+  const handleGenerateDraft = useCallback(async () => {
+    if (!finalTranscript.trim()) {
+      setCohereError('Transcript is empty; please capture audio first.')
+      return
+    }
+    setIsExtracting(true)
+    setCohereError(null)
+    try {
+      const clinical = await extractClinicalData(finalTranscript)
+      setClinicalData(clinical)
+    } catch (cohereErr) {
+      const message = cohereErr instanceof Error ? cohereErr.message : 'Failed to extract clinical data.'
+      setCohereError(message)
+    } finally {
+      setIsExtracting(false)
+    }
   }, [finalTranscript])
 
   const containerStyle: React.CSSProperties = {
     fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    padding: '2rem 1.5rem',
-    maxWidth: '960px',
+    padding: '2rem 1.5rem 2.75rem',
+    maxWidth: '1040px',
     margin: '0 auto',
-    color: '#1f2933',
+    color: '#0f172a',
+    background: 'linear-gradient(180deg, #f8fafc 0%, #eef2ff 60%, #f8fafc 100%)',
+    borderRadius: '18px',
+    boxShadow: '0 25px 80px rgba(15, 23, 42, 0.12)',
   }
 
   const headerStyle: React.CSSProperties = {
-    marginBottom: '1.25rem',
-    fontSize: '1.75rem',
-    fontWeight: 700,
+    marginBottom: '0.35rem',
+    fontSize: '1.85rem',
+    fontWeight: 800,
     textAlign: 'center',
+    letterSpacing: '-0.01em',
   }
 
   const statusStyle: React.CSSProperties = {
     marginBottom: '1.25rem',
     fontWeight: 600,
     textAlign: 'center',
+    color: isListening ? '#166534' : '#334155',
   }
 
   const controlsStyle: React.CSSProperties = {
@@ -242,44 +264,51 @@ const AmbientScribe: React.FC = () => {
     flexWrap: 'wrap',
     gap: '0.75rem',
     marginBottom: '1.5rem',
+    alignItems: 'center',
   }
 
   const primaryButtonStyle: React.CSSProperties = {
-    padding: '0.6rem 1.1rem',
-    borderRadius: '6px',
+    padding: '0.65rem 1.2rem',
+    borderRadius: '8px',
     border: '1px solid #2563eb',
     backgroundColor: '#2563eb',
     color: '#fff',
     cursor: 'pointer',
+    boxShadow: '0 10px 20px rgba(37, 99, 235, 0.18)',
+    transition: 'transform 120ms ease, box-shadow 120ms ease',
   }
 
   const secondaryButtonStyle: React.CSSProperties = {
-    padding: '0.6rem 1.1rem',
-    borderRadius: '6px',
-    border: '1px solid #9ca3af',
-    backgroundColor: '#e5e7eb',
-    color: '#111827',
+    padding: '0.65rem 1.2rem',
+    borderRadius: '8px',
+    border: '1px solid #dc2626',
+    backgroundColor: '#ef4444',
+    color: '#ffffff',
     cursor: 'pointer',
+    transition: 'transform 120ms ease, box-shadow 120ms ease',
   }
 
   const successButtonStyle: React.CSSProperties = {
-    padding: '0.6rem 1.1rem',
-    borderRadius: '6px',
+    padding: '0.65rem 1.2rem',
+    borderRadius: '8px',
     border: '1px solid #10b981',
-    backgroundColor: '#10b981',
+    backgroundColor: '#0f9b6c',
     color: '#fff',
     cursor: 'pointer',
     marginLeft: 'auto',
+    boxShadow: '0 10px 20px rgba(16, 185, 129, 0.18)',
+    transition: 'transform 120ms ease, box-shadow 120ms ease',
   }
 
   const transcriptWrapperStyle: React.CSSProperties = {
-    border: '1px solid #d1d5db',
-    borderRadius: '10px',
-    padding: '1.25rem',
-    marginBottom: '1.75rem',
+    border: '1px solid #e2e8f0',
+    borderRadius: '14px',
+    padding: '1.35rem',
+    marginBottom: '1.85rem',
     maxHeight: '260px',
     overflowY: 'auto',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#ffffff',
+    boxShadow: '0 12px 30px rgba(15, 23, 42, 0.06)',
   }
 
   const transcriptSectionStyle: React.CSSProperties = {
@@ -288,26 +317,16 @@ const AmbientScribe: React.FC = () => {
 
   const sectionHeaderStyle: React.CSSProperties = {
     fontSize: '1rem',
-    fontWeight: 600,
-    marginBottom: '0.5rem',
+    fontWeight: 700,
+    marginBottom: '0.4rem',
+    letterSpacing: '-0.01em',
+    color: '#0f172a',
   }
 
   const transcriptTextStyle: React.CSSProperties = {
     margin: 0,
     whiteSpace: 'pre-wrap',
     lineHeight: 1.5,
-  }
-
-  const textareaStyle: React.CSSProperties = {
-    width: '100%',
-    minHeight: '200px',
-    padding: '0.9rem',
-    borderRadius: '8px',
-    border: '1px solid #d1d5db',
-    fontFamily: 'inherit',
-    fontSize: '1rem',
-    lineHeight: 1.6,
-    resize: 'vertical',
   }
 
   const disableStyle = (base: React.CSSProperties, disabled: boolean): React.CSSProperties => ({
@@ -321,6 +340,12 @@ const AmbientScribe: React.FC = () => {
       <h1 style={headerStyle}>Ambient Scribe – Doctor/Patient POC</h1>
 
       <div style={statusStyle}>{statusLabel}</div>
+      {cohereError ? (
+        <div style={{ color: '#b91c1c', marginBottom: '0.75rem', textAlign: 'center' }}>{cohereError}</div>
+      ) : null}
+      {isExtracting ? (
+        <div style={{ color: '#1d4ed8', marginBottom: '0.75rem', textAlign: 'center' }}>Generating draft note…</div>
+      ) : null}
 
       <div style={controlsStyle}>
         <button
@@ -360,16 +385,53 @@ const AmbientScribe: React.FC = () => {
         </div>
       </div>
 
-      <label htmlFor="draft-note" style={{ fontWeight: 600, display: 'block', marginBottom: '0.6rem' }}>
-        Draft clinical note
-      </label>
-      <textarea
-        id="draft-note"
-        value={draftNote}
-        onChange={event => setDraftNote(event.target.value)}
-        placeholder="Generated note will appear here..."
-        style={textareaStyle}
-      />
+      <div style={{ marginTop: '1.5rem', marginBottom: '0.75rem', fontWeight: 800, fontSize: '1.15rem' }}>
+        Clinical notes
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '1rem',
+        }}
+      >
+        {(
+          [
+            { label: 'Symptoms', key: 'symptoms' as const },
+            { label: 'History', key: 'history' as const },
+            { label: 'Assessment', key: 'assessment' as const },
+            { label: 'Medications', key: 'medications' as const },
+            { label: 'Plan', key: 'plan' as const },
+          ]
+        ).map(section => {
+          const items = clinicalData?.[section.key] ?? []
+          return (
+            <div
+              key={section.key}
+              style={{
+                border: '1px solid #d1d5db',
+                borderRadius: '10px',
+                padding: '1rem',
+                backgroundColor: '#fff',
+                minHeight: '140px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '1rem' }}>{section.label}</div>
+              {items.length ? (
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', lineHeight: 1.5 }}>
+                  {items.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ margin: 0, color: '#6b7280' }}>No entries yet.</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
